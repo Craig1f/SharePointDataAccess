@@ -1,4 +1,5 @@
 var dataAccess = function() {
+    //Takes a JSON object, converts it to a CSOM object, and adds it to the list. 
     function createListItem(listName, obj) {
         var promise = $.Deferred();
 
@@ -11,6 +12,7 @@ var dataAccess = function() {
             var itemCreateInfo = new SP.ListItemCreationInformation();
             this.oListItem = oList.addItem(itemCreateInfo);
 
+            //Converts the JSON-formated object into CSOM. 
             for (key in obj) {
                 this.oListItem.set_item(key, obj[key]);
             }
