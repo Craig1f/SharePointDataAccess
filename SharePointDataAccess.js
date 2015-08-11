@@ -1,4 +1,5 @@
-var dataAccess = function() {
+define(['jquery', 'moment', 'log', 'spservices'], function($, moment, log) {
+	log.info("SharePoint CSOM Data Access Loading");
 	var _siteUrl;
 	function siteUrl(){
 		if (!_siteUrl){
@@ -6,13 +7,17 @@ var dataAccess = function() {
 		}
 		return _siteUrl;
 	}
+	
+	function getCtx(){
+		return new SP.ClientContext(siteUrl());
+	}
 
 	function getFieldsInList(listName){
 	
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var list = clientContext.get_web().get_lists().getByTitle(listName);
 			var listFields = list.get_fields();
 			clientContext.load(listFields, 'Include(Title,InternalName,Description,FieldTypeKind,TypeAsString)');
@@ -102,7 +107,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 
@@ -133,7 +138,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			this.listItem = oList.getItemById(obj.ID);
@@ -161,7 +166,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists().getByTitle(listName);
 			var rootFolder = oList.get_rootFolder();
 			var itemCreateInfo = new SP.ListItemCreationInformation();
@@ -180,10 +185,10 @@ var dataAccess = function() {
 			clientContext.load(rootFolder);
 			clientContext.executeQueryAsync(Function.createDelegate(this,
 					function() {			
-						log("Doc Set Created");						    
+						log.info("Doc Set Created");						    
 					    promise.resolve(this.oListItem);
 					}), Function.createDelegate(this, function(sender, args) {
-						error("Doc Set Creation Error" +  args.get_message());
+						log.error("Doc Set Creation Error" +  args.get_message());
 						promise.reject({message: "dataAccess.createDocumentSet:" + args.get_message()})
 					}));
 		
@@ -293,7 +298,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			this.listItem = oList.getItemById(id);
@@ -318,7 +323,7 @@ var dataAccess = function() {
 			promise.resolve(0);
 		} else {
 			try {
-				var clientContext = new SP.ClientContext(siteUrl());
+				var clientContext = getCtx();
 				var oList = clientContext.get_web().get_lists().getByTitle(listName);
 				var query = new SP.CamlQuery();
 					query.set_viewXml("<View Scope='RecursiveAll'>" +
@@ -356,7 +361,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			var listItem = oList.getItemById(id);
@@ -378,7 +383,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 
@@ -410,7 +415,7 @@ var dataAccess = function() {
 		var promise = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			var listItem = oList.getItemById(id);
@@ -502,7 +507,7 @@ var dataAccess = function() {
 						}
 					}
 					
-					promise.resolve(userInGroup, user.get_title());
+					promise.resolve(userInGroup, user.get_title(), user.get_id());
                 },
                 function OnFailure(sender, args) {
 					promise.reject({message: args.get_message()});
@@ -679,7 +684,7 @@ var dataAccess = function() {
 		var deferred = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			var camlQuery = new SP.CamlQuery();
@@ -709,7 +714,7 @@ var dataAccess = function() {
 		var deferred = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			var camlQuery = new SP.CamlQuery();
@@ -739,7 +744,7 @@ var dataAccess = function() {
 		var deferred = $.Deferred();
 
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var oList = clientContext.get_web().get_lists()
 					.getByTitle(listName);
 			
@@ -764,6 +769,43 @@ var dataAccess = function() {
 		return deferred.promise();
 	}
 	
+	function getAllItemsInFolder(listName, folderName) {
+/*		var caml = "<View Scope=\"RecursiveAll\"> " +
+                    "<Query>" +
+	                    "<Where>" +
+	                       	"<Eq>" +
+		                        "<FieldRef Name=\"FileDirRef\" />" +
+		                        "<Value Type=\"Text\">" + caml + "</Value>" +
+	                     	"</Eq>" +
+	                    "</Where>" +
+                    "</Query>" +
+                    "</View>";
+                    */
+   		var deferred = $.Deferred();
+
+		try {
+			var clientContext = getCtx();
+			var oList = clientContext.get_web().get_lists()
+					.getByTitle(listName);
+			
+			var camlQuery = new SP.CamlQuery();
+			var camlQuery = SP.CamlQuery.createAllItemsQuery();
+			camlQuery.set_folderServerRelativeUrl(folderName);
+			var listItems = oList.getItems(camlQuery);
+			clientContext.load(listItems);
+			clientContext.executeQueryAsync(Function.createDelegate(this,
+					function() {
+						deferred.resolve(listItems);
+					}), Function.createDelegate(this, function(sender, args) {
+				deferred.reject(args);
+			}));
+		} catch (err) {
+			deferred.reject(err);
+		}
+		return deferred.promise();
+	}
+
+	
 	function csomToJson(obj, fields, optionalFieldMap){
 		var ret = {};
 
@@ -786,12 +828,13 @@ var dataAccess = function() {
 								case 14: //Guid
 								case 15: //MultiChoice returns an array, which is what we want
 								case 17: //Calculated
+								case 18: //File
 								case 25: //ContentTypeId
 									ret[key] = obj.get_item(key);
 									break;
 								case 4: //DateTime
 									var dateTime = moment(new Date(obj.get_item(key)));
-									ret[key] = {//Fri Jul 17 2015 00:00:00 GMT-0400 (Eastern Standard Time)								
+									ret[key] = {//Fri Jul 17 2015 00:00:00 GMT-0400 (Eastern Standard Time)
 										date: dateTime.format('MM/DD/YYYY'),
 										time: dateTime.format('h:mm:ss a')
 									};
@@ -801,7 +844,6 @@ var dataAccess = function() {
 									//Todo: Deal with claims
 									ret[key] = person.get_lookupId() + ";#" +  person.get_lookupValue();
 									break;							
-								case 18: //File
 								case 23: //ModStat
 								case 28: //WorkflowStatus
 									break;
@@ -814,7 +856,7 @@ var dataAccess = function() {
 					}
 				}
 			} catch(err){	
-				error("Problem setting the " + fields[index] + " field: " + err);				
+				log.error("Problem setting the " + fields[index] + " field: " + err);				
 			}
 		}
 		
@@ -844,7 +886,7 @@ var dataAccess = function() {
 				case 'Created':
 					break;
 				default: 
-					log ("setting " + key + " field to '" + obj[key] + "'");
+					//log.info("setting " + key + " field to '" + obj[key] + "'");
 					switch(optionalFieldMap[key].type){
 						case 1: //Integer
 						case 2: //Text
@@ -859,13 +901,13 @@ var dataAccess = function() {
 							break;
 						case 4: //DateTime
 							if (typeof obj[key].date == 'undefined'){
-								obj[key].date = '';
+								break;
+							} else if (typeof obj[key].time == 'undefined'){
+								listItem.set_item(key, obj[key].date);
+								break;
+							} else {
+								throw 'DateTime not implemented together yet';
 							}
-							if (typeof obj[key].time == 'undefined'){
-								obj[key].time = '';
-							}
-							var dateTime = moment(new Date(obj[key].date + " " + obj[key].time)).utc().toJSON();
-							listItem.set_item(key, moment(new Date(dateTime)).utc().toJSON());	
 							break;
 						case 5: //Counter
 						case 14: //Guid
@@ -909,7 +951,7 @@ var dataAccess = function() {
 	function ensureUsers(userArr){
 		var deferred = $.Deferred();
 		try {
-			var clientContext = new SP.ClientContext(siteUrl());
+			var clientContext = getCtx();
 			var web = clientContext.get_web();
 			
 			var nonrepeatingArr = [];
@@ -1029,6 +1071,7 @@ var dataAccess = function() {
 		getListItemsByTextField: getListItemsByTextField,
 		getLibraryItemByFileLeafRef: getLibraryItemByFileLeafRef,
 		getAllListItems: getAllListItems,
+		getAllItemsInFolder: getAllItemsInFolder,
 		getFieldsInList: getFieldsInList,
 		createListItemInFolder : createListItemInFolder,
 		createGroup : createGroup,
@@ -1044,4 +1087,4 @@ var dataAccess = function() {
 			isGroupMember : isGroupMemberSync
 		}
 	}
-}();
+});
